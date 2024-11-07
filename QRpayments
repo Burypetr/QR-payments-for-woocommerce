@@ -1,0 +1,42 @@
+// Function to generate a QR Platba URL for WooCommerce orders
+function generate_qr_platba_url($order_id) {
+    // Define fixed payment details
+    $account_number = "ACCNUMBER"; // Bank account
+    $currency = "CZK"; // Currency (CZK for Czech Koruna)
+    
+    // Get the order details
+    $order = wc_get_order($order_id);
+    if (!$order) return '';
+
+    // Retrieve amount and format it
+    $amount = number_format($order->get_total(), 2, '.', ''); // Order total with 2 decimal places
+
+    // Optional: Get the order number or other fields as variable symbol
+    $variable_symbol = $order->get_order_number();
+
+    // Generate the QR Platba string
+    $qr_string = "SPD*1.0*ACC:$account_number*AM:$amount*CC:$currency*X-VS:$variable_symbol";
+
+    // URL encode the string for the QR code API
+    $qr_encoded = urlencode($qr_string);
+
+    // Generate the QR code URL
+    $qr_url = "https://api.qrserver.com/v1/create-qr-code/?size=150x150&data=$qr_encoded";
+
+    return $qr_url;
+}
+
+// Add QR Code to the Thank You page
+add_action('woocommerce_thankyou', 'show_qr_code_on_thank_you_page', 10, 1);
+function show_qr_code_on_thank_you_page($order_id) {
+    // Generate the QR URL
+    $qr_url = generate_qr_platba_url($order_id);
+    
+    // Display the QR code
+    if ($qr_url) {
+        echo '<div class="qr-code">';
+        echo '<h3>Platba QR:</h3>';
+        echo '<iframe src="' . esc_url($qr_url) . '" width="200" height="200" frameborder="0"></iframe>';
+        echo '</div>';
+    }
+}
